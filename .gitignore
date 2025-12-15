@@ -1,0 +1,51 @@
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.ENV.local
+.env
+.env.local
+.env.*
+
+# Build and distribution
+build/
+dist/
+*.egg
+*.egg-info/
+*.so
+*.whl
+
+# Testing
+.coverage
+htmlcov/
+.coverage.*
+.nosetests
+.pytest_cache/
+.mypy_cache/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+```
