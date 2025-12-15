@@ -1,0 +1,15 @@
+torch
+torchvision
+accelerate
+diffusers[torch]
+transformers
+datasets
+numpy
+opencv-python
+pillow
+scikit-image
+huggingface_hub
+xformers
+wandb
+ftfy
+tqdm
