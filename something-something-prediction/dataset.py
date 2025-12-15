@@ -11,6 +11,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from datasets import load_dataset
 import cv2
+import subprocess
+from pathlib import Path
 
 
 class SomethingSomethingDataset(Dataset):
@@ -51,57 +53,150 @@ class SomethingSomethingDataset(Dataset):
     
     def _load_dataset(self):
         """
-        Load the Something-Something V2 dataset from HuggingFace or local directory.
+        Load the Something-Something V2 dataset from local directory.
         """
-        print("Loading Something-Something V2 dataset...")
+        print("Loading Something-Something V2 dataset from local directory...")
         
-        # Try to load from HuggingFace first
-        try:
-            dataset = load_dataset("HuggingFaceM4/something_something_v2", split="train")
-            print(f"Loaded {len(dataset)} samples from HuggingFace dataset")
+        # Define the exact keywords for our three tasks as specified in the project description
+        self.move_object_keywords = [
+            "moving something from left to right", "pushing something from right to left",
+            "moving something", "pushing something", "pulling something"
+        ]
+        self.drop_object_keywords = [
+            "dropping something onto something", "letting something fall down",
+            "dropping something", "letting something fall"
+        ]
+        self.cover_object_keywords = [
+            "covering something with something", "putting something on top of something",
+            "covering something", "putting something on top of something"
+        ]
+        
+        # Look for label files in the dataset directory
+        label_file = os.path.join(self.dataset_dir, 'something-something-v2-labels.json')
+        annotations_file = os.path.join(self.dataset_dir, 'something-something-v2-train.json')
+        
+        if os.path.exists(label_file) and os.path.exists(annotations_file):
+            print(f"Found label files: {label_file}, {annotations_file}")
             
-            # Filter for the specific tasks we want
-            for idx, sample in enumerate(dataset):
-                text = sample['text'].lower()
+            # Load the labels and annotations
+            with open(label_file, 'r') as f:
+                labels_map = json.load(f)
+                
+            with open(annotations_file, 'r') as f:
+                annotations = json.load(f)
+                
+            # Create reverse mapping for labels
+            label_to_text = {int(k): v for k, v in labels_map.items()}
+            
+            # Process annotations
+            for annotation in annotations:
+                video_id = str(annotation['id']).zfill(6)  # Format as 6-digit number with leading zeros
+                text = annotation['template'].replace('[', '').replace(']', '')  # Clean template
+                label = annotation['label_id']
                 
                 # Check if the action belongs to one of our target categories
-                if (any(keyword in text for keyword in self.move_object_keywords) or
-                    any(keyword in text for keyword in self.drop_object_keywords) or
-                    any(keyword in text for keyword in self.cover_object_keywords)):
+                text_lower = text.lower()
+                if (any(keyword in text_lower for keyword in self.move_object_keywords) or
+                    any(keyword in text_lower for keyword in self.drop_object_keywords) or
+                    any(keyword in text_lower for keyword in self.cover_object_keywords)):
                     
-                    # For now, we'll store the video_id and text description
-                    # In a real implementation, you would extract frames from the video
-                    self.data.append({
-                        'video_id': sample['video_id'],
-                        'text': sample['text'],
-                        'label': sample['label']
-                    })
-                    
-                    if self.max_samples and len(self.data) >= self.max_samples:
-                        break
-        except Exception as e:
-            print(f"Could not load from HuggingFace: {e}")
-            print("Please ensure you have access to the dataset or provide a local path")
-            # For now, we'll create some dummy data for demonstration
-            for i in range(100):  # Create 100 dummy samples
+                    # Check if the video file exists
+                    video_path = os.path.join(self.dataset_dir, f"{video_id}.webm")
+                    if os.path.exists(video_path):
+                        self.data.append({
+                            'video_id': video_id,
+                            'video_path': video_path,
+                            'text': text,
+                            'label': label
+                        })
+                        print(f"Added video: {video_id} with action: {text}")
+                        
+                        if self.max_samples and len(self.data) >= self.max_samples:
+                            break
+            print(f"Loaded {len(self.data)} valid samples from local dataset")
+        else:
+            print(f"Label files not found at {label_file} or {annotations_file}")
+            print("Looking for video files in the dataset directory...")
+            
+            # If label files don't exist, scan for video files and try to match based on filenames
+            video_extensions = ['.webm', '.mp4', '.avi', '.mov']
+            video_files = []
+            
+            for ext in video_extensions:
+                video_files.extend(Path(self.dataset_dir).glob(f"*{ext}"))
+            
+            # Sort and take first few files if max_samples is set
+            video_files = sorted(video_files)[:self.max_samples] if self.max_samples else sorted(video_files)
+            
+            print(f"Found {len(video_files)} video files")
+            
+            # For each video file, we'll try to determine if it fits our criteria
+            # In the absence of labels, we'll create a basic dataset structure
+            for video_path in video_files:
+                video_id = video_path.stem  # filename without extension
+                
+                # Since we don't have text descriptions, we'll use the file name as a placeholder
+                # In practice, you'd want to load the actual labels from the annotations
                 self.data.append({
-                    'video_id': f"dummy_{i}",
-                    'text': f"dummy action description {i}",
-                    'label': i % 3  # Simulate 3 classes
+                    'video_id': video_id,
+                    'video_path': str(video_path),
+                    'text': f"action in video {video_id}",  # Placeholder text
+                    'label': 0  # Placeholder label
                 })
+                
+                if self.max_samples and len(self.data) >= self.max_samples:
+                    break
+                    
+            if len(self.data) == 0:
+                print("No video files found, creating dummy data for demonstration")
+                # Create some dummy data if no videos are found
+                for i in range(min(100, self.max_samples or 100)):  # Create up to 100 dummy samples
+                    self.data.append({
+                        'video_id': f"dummy_{i:06d}",
+                        'video_path': f"/dummy/path/dummy_{i:06d}.webm",
+                        'text': f"dummy action description {i}",
+                        'label': i % 3  # Simulate 3 classes
+                    })
     
-    def _extract_frames(self, video_path, target_frame_idx):
+    def _extract_frames(self, video_path, target_frame_idx=None):
         """
-        Extract frames from a video file.
-        This is a placeholder implementation - in practice you would use a video processing library.
+        Extract frames from a video file using OpenCV.
         """
-        # In a real implementation, you would extract frames from the video
-        # For now, we'll return dummy frames
+        if not os.path.exists(video_path):
+            print(f"Video file does not exist: {video_path}")
+            return []
+        
+        # Open the video file
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Could not open video: {video_path}")
+            return []
+        
         frames = []
-        for i in range(target_frame_idx + 1):  # Generate frames up to target
-            # Create a dummy frame (in practice, load from video)
-            frame = np.random.randint(0, 255, (self.resolution, self.resolution, 3), dtype=np.uint8)
-            frames.append(Image.fromarray(frame))
+        frame_idx = 0
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Convert BGR to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # Resize frame to the required resolution
+            frame_resized = cv2.resize(frame_rgb, (self.resolution, self.resolution))
+            
+            # Convert to PIL Image
+            pil_frame = Image.fromarray(frame_resized)
+            frames.append(pil_frame)
+            
+            frame_idx += 1
+            
+            # If target_frame_idx is specified, we can stop early
+            if target_frame_idx is not None and frame_idx > target_frame_idx:
+                break
+        
+        cap.release()
         return frames
     
     def __len__(self):
@@ -115,17 +210,24 @@ class SomethingSomethingDataset(Dataset):
         """
         sample = self.data[idx]
         
-        # In a real implementation, you would:
-        # 1. Load the video
-        # 2. Extract frames
-        # 3. Select current frame (input) and target frame (current + frame_step)
+        # Extract frames from the video
+        frames = self._extract_frames(sample['video_path'])
         
-        # For demonstration, create dummy frames
-        input_image = np.random.randint(0, 255, (self.resolution, self.resolution, 3), dtype=np.uint8)
-        target_image = np.random.randint(0, 255, (self.resolution, self.resolution, 3), dtype=np.uint8)
-        
-        input_image = Image.fromarray(input_image)
-        target_image = Image.fromarray(target_image)
+        if len(frames) == 0:
+            # If we can't extract frames, return dummy data
+            input_image = np.random.randint(0, 255, (self.resolution, self.resolution, 3), dtype=np.uint8)
+            target_image = np.random.randint(0, 255, (self.resolution, self.resolution, 3), dtype=np.uint8)
+            input_image = Image.fromarray(input_image)
+            target_image = Image.fromarray(target_image)
+        elif len(frames) < self.frame_step + 1:
+            # If video is too short, duplicate the last frame
+            input_image = frames[0]
+            target_image = frames[-1]
+        else:
+            # Select input frame (first frame) and target frame (frame_step frames ahead)
+            input_image = frames[0]  # First frame as input
+            target_frame_idx = min(self.frame_step, len(frames) - 1)  # Ensure we don't go out of bounds
+            target_image = frames[target_frame_idx]
         
         return {
             'input_image': input_image,
