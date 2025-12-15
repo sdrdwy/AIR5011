@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "template": "Moving something from left to right",
+    "label_id": 37
+  },
+  {
+    "id": 2,
+    "template": "Moving something from right to left",
+    "label_id": 38
+  },
+  {
+    "id": 3,
+    "template": "Pushing something from right to left",
+    "label_id": 77
+  },
+  {
+    "id": 4,
+    "template": "Pushing something from left to right",
+    "label_id": 76
+  },
+  {
+    "id": 5,
+    "template": "Dropping something onto something",
+    "label_id": 12
+  },
+  {
+    "id": 6,
+    "template": "Letting something fall down",
+    "label_id": 21
+  },
+  {
+    "id": 7,
+    "template": "Covering something with something",
+    "label_id": 6
+  },
+  {
+    "id": 8,
+    "template": "Putting something on top of something",
+    "label_id": 88
+  },
+  {
+    "id": 10,
+    "template": "Moving something from left to right",
+    "label_id": 37
+  },
+  {
+    "id": 15,
+    "template": "Dropping something onto something",
+    "label_id": 12
+  },
+  {
+    "id": 20,
+    "template": "Covering something with something",
+    "label_id": 6
+  },
+  {
+    "id": 25,
+    "template": "Moving something from right to left",
+    "label_id": 38
+  },
+  {
+    "id": 30,
+    "template": "Letting something fall down",
+    "label_id": 21
+  },
+  {
+    "id": 35,
+    "template": "Putting something on top of something",
+    "label_id": 88
+  },
+  {
+    "id": 40,
+    "template": "Pushing something from right to left",
+    "label_id": 77
+  },
+  {
+    "id": 45,
+    "template": "Moving something from left to right",
+    "label_id": 37
+  },
+  {
+    "id": 50,
+    "template": "Dropping something onto something",
+    "label_id": 12
+  },
+  {
+    "id": 55,
+    "template": "Covering something with something",
+    "label_id": 6
+  },
+  {
+    "id": 60,
+    "template": "Moving something from right to left",
+    "label_id": 38
+  },
+  {
+    "id": 65,
+    "template": "Letting something fall down",
+    "label_id": 21
+  }
+]

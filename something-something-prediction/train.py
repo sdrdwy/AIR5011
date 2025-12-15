@@ -307,6 +307,12 @@ def parse_args():
             " `args.validation_prompt` multiple times: `args.num_validation_images`."
         ),
     )
+    parser.add_argument(
+        "--frame_step",
+        type=int,
+        default=20,
+        help="Number of frames to skip to get the target frame (default 20, which is ~1.67s at 12fps)",
+    )
 
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
