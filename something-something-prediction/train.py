@@ -291,6 +291,14 @@ def parse_args():
         help="Number of images that should be generated during validation with `validation_prompt`.",
     )
     parser.add_argument(
+        "--max_train_samples",
+        type=int,
+        default=None,
+        help=(
+            "For debugging purposes or quicker training, truncate the number of training examples to this value if set."
+        ),
+    )
+    parser.add_argument(
         "--validation_epochs",
         type=int,
         default=1,
@@ -480,7 +488,8 @@ def main():
     train_dataset = SomethingSomethingDataset(
         dataset_dir=args.dataset_dir,
         resolution=args.resolution,
-        max_samples=args.max_train_samples
+        max_samples=args.max_train_samples,  # Note: using max_samples instead of max_train_samples
+        frame_step=args.frame_step if hasattr(args, 'frame_step') else 20  # Default to 20 frames ahead (1.67 seconds at 12fps)
     )
     
     def tokenize_captions(captions):
@@ -531,8 +540,6 @@ def main():
         return examples
 
     with accelerator.main_process_first():
-        if args.max_train_samples is not None:
-            train_dataset = train_dataset.select(range(args.max_train_samples))
         # Set the training transforms
         train_dataset.set_transform(preprocess_train)
 
