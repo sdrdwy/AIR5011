@@ -54,14 +54,18 @@ python evaluate.py --model_path "./output_model" --dataset_dir "/path/to/dataset
 ## Dataset Processing
 
 The model expects the Something-Something V2 dataset to be processed into the following format:
-- Video files in .webm format (1.webm, 2.webm, etc.)
-- Annotation files: `something-something-v2-labels.json` and `something-something-v2-train.json`
+- Video files in .webm format (1.webm, 2.webm, etc.) stored in the dataset directory
+- Label file: `something-something-v2-labels.json` containing action category mappings
+- Annotation file: `something-something-v2-train.json` containing video IDs and action templates
 - The dataset should be organized by the three specific task categories mentioned above
 
 The code will:
-1. Load videos and their corresponding text descriptions
-2. Filter for the three specific action classes required by the project
-3. Extract frames from each video
+1. Load videos and their corresponding text descriptions from the annotation files
+2. Filter for the three specific action classes required by the project:
+   - move_object: "Moving something from left to right", "Pushing something from right to left", etc.
+   - drop_object: "Dropping something onto something", "Letting something fall down", etc.
+   - cover_object: "Covering something with something", "Putting something on top of something", etc.
+3. Extract frames from each video using OpenCV
 4. Use the first frame as input and the frame 20 steps ahead (≈1.67 seconds at 12fps) as the target
 5. Use the action description as the text conditioning prompt
 
